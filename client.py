@@ -71,13 +71,19 @@ def game():
     result = (0, "")
     return result
     
+input_lock = threading.Lock()
+
 def play_turn(sign):
+    input_lock.acquire()
     x = int(input("Enter x: "))
     y = int(input("Enter y: "))
+    input_lock.release()
     while x == "" or y == "" or x >= 3 or y >= 3 or game_grid[x][y] != " " :
-        print("eneter another set of coordinates")
+        print("enter another set of coordinates")
+        input_lock.acquire()
         x = int(input("Enter x: "))
         y = int(input("Enter y: "))
+        input_lock.release()
     
     game_grid[x][y] = sign
     return (x,y)

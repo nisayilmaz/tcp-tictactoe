@@ -1,120 +1,152 @@
-import pygame
 import sys
 import socket
 import ast
 import threading
+import json
+from tkinter import *
+from tkinter import messagebox, ttk
+
 HOST = "127.0.0.1"
 PORT = 7777
+
 
 client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 client_socket.connect((HOST, PORT))
 
+############################################ UI ###############################################################
+root = Tk()
+root.title("GeeksForGeeks - Tic Tac Toe")
+root.resizable(0, 0)
+main_frame = Frame(root)
+wait_frame = Frame(root)
+game_end = Frame(root)
 
-board = [[0, 0, 0], [0, 0, 0], [0, 0, 0]]
+main_frame.grid(row = 0, column = 0, rowspan=4, columnspan=3, sticky ="nsew")
+wait_frame.grid(row = 0, column = 0, rowspan=4, columnspan=3, sticky ="nsew")
+game_end.grid(row = 0, column = 0, rowspan=4, columnspan=3, sticky ="nsew")
 
-pygame.init()
+turn_label = ttk.Label(main_frame, text="Player 1's Turn", font=("Helvetica", 16))
+turn_label.grid(row=0, column=0, columnspan=3, padx=10, pady=10)
 
-WIDTH = 600
-HEIGHT = 600
-LINE_WIDTH = 5
-BOARD_ROWS = 3
-BOARD_COLS = 3
-SQUARE_SIZE = 200
-CIRCLE_RADIUS = 60
-CIRCLE_WIDTH = 15
-CROSS_WIDTH = 25
-SPACE = 55
+chat_frame = Frame(main_frame, width=200, height=300, bd=1, relief=SOLID)
+chat_frame.grid(row=0, column=3, rowspan=4, columnspan=2, padx=10, pady=10)
 
-BG_COLOR = (31, 31, 31)
-LINE_COLOR = (23, 145, 135)
-CIRCLE_COLOR = (239, 231, 200)
-CROSS_COLOR = (66, 66, 66)
+chat_text = Text(chat_frame, width=30, height=15)
+chat_text.grid(row=0, column=0,rowspan=3, padx=5, pady=5)
 
-screen = pygame.display.set_mode((WIDTH, HEIGHT))
-pygame.display.set_caption('TIC TAC TOE')
-screen.fill(BG_COLOR)
+scrollbar = Scrollbar(chat_frame, command=chat_text.yview)
+scrollbar.grid(row=0, column=1, sticky="ns")
+chat_text.config(yscrollcommand=scrollbar.set)
 
+chat_input = Entry(chat_frame, width=30)
+chat_input.grid(row=3, column=0, padx=10, pady=5)
 
-def draw_lines():
-
-    pygame.draw.line(screen, LINE_COLOR, (0, SQUARE_SIZE),
-                     (WIDTH, SQUARE_SIZE), LINE_WIDTH)
-
-    pygame.draw.line(screen, LINE_COLOR, (0, 2 * SQUARE_SIZE),
-                     (WIDTH, 2 * SQUARE_SIZE), LINE_WIDTH)
-
-    pygame.draw.line(screen, LINE_COLOR, (SQUARE_SIZE, 0),
-                     (SQUARE_SIZE, HEIGHT), LINE_WIDTH)
-
-    pygame.draw.line(screen, LINE_COLOR, (2 * SQUARE_SIZE, 0),
-                     (2 * SQUARE_SIZE, HEIGHT), LINE_WIDTH)
+lbl = ttk.Label(wait_frame, text="Welcome! Waiting for players...", font=("Helvetica", 20))
+lbl.grid(row=0, column=0, columnspan=3, padx=10, pady=10)
 
 
-def draw_figures():
-    for row in range(BOARD_ROWS):
-        for col in range(BOARD_COLS):
-            if board[row][col] == 2:
-                pygame.draw.circle(screen, CIRCLE_COLOR, (int(col * SQUARE_SIZE + SQUARE_SIZE//2), int(
-                    row * SQUARE_SIZE + SQUARE_SIZE//2)), CIRCLE_RADIUS, CIRCLE_WIDTH)
-            elif board[row][col] == 1:
-                pygame.draw.line(screen, CROSS_COLOR, (col * SQUARE_SIZE + SPACE, row * SQUARE_SIZE + SQUARE_SIZE -
-                                 SPACE), (col * SQUARE_SIZE + SQUARE_SIZE - SPACE, row * SQUARE_SIZE + SPACE), CROSS_WIDTH)
-                pygame.draw.line(screen, CROSS_COLOR, (col * SQUARE_SIZE + SPACE, row * SQUARE_SIZE + SPACE),
-                                 (col * SQUARE_SIZE + SQUARE_SIZE - SPACE, row * SQUARE_SIZE + SQUARE_SIZE - SPACE), CROSS_WIDTH)
+def player():
+    requested = {
+        "requested" : "player"
+    }
+    client_socket.send(bytes(str(requested), "utf-8"))
 
+def watcher():
+    requested = {
+        "requested" : "watcher"
+    }
+    client_socket.send(bytes(str(requested), "utf-8"))
 
-def mark_square(row, col, player):
-    board[row][col] = player
+player_btn = Button(wait_frame, text="Player", command=player)
+player_btn.grid(row=3, column=1, padx=10, pady=5)
 
+watcher_btn = Button(wait_frame, text="Watcher", command=watcher)
+watcher_btn.grid(row=3, column=2, padx=10, pady=5)
 
-def available_square(row, col):
-    return board[row][col] == 0
+wait_frame.tkraise()
 
-
-def is_board_full():
-    for row in range(BOARD_ROWS):
-        for col in range(BOARD_COLS):
-            if board[row][col] == 0:
-                return False
-
-    return True
-
-
-program_fin = 0
+#Button
+b = [
+     [0,0,0],
+     [0,0,0],
+     [0,0,0]]
+ 
 role = ""
 sign = ""
 turn = 0
 const = 1
-game_details = {"move": "", "turn": 0, "result": ""}
+game_details = {"move": ""}
 signs = ["X", "O"]
 game_fin = 0
 
+def updateBoard(board):
+    num_to_s = ["", "X", "O"]
+    global b
+    for i in range(0,3):
+        for j in range(0,3):
+            b[i][j].configure(text= num_to_s[board[i][j]])
+
+def updateChat(msg):
+    global chat_text
+    chat_text.insert("end", msg)
+
+def sendMsg():
+    global chat_input,client_socket
+    msg = chat_input.get()
+    chat_input.delete(0, END)
+    msg = {
+        "reaction" : msg + "\n"
+    }
+    client_socket.send(bytes(str(msg), "utf-8"))
+
+send_button = Button(chat_frame, text="Send", command=sendMsg)
+send_button.grid(row=3, column=1, padx=10, pady=5)
+
 
 def handle(data_dict, client_socket):
-    global role, sign, turn, const, game_details, signs, game_fin, board, can_process
+    global role, sign, turn, const, game_details, signs, game_fin, board, can_process,res_txt
     can_process = 0
-    turn = data_dict.get("turn", None)
+    print(data_dict)
+    turn_server = data_dict.get("turn", None)
     role_server = data_dict.get("role", None)
-    move = data_dict.get("move", None)
     sign_server = data_dict.get("sign", None)
+    board_server = data_dict.get("board", None)
+    reaction_server = data_dict.get("reaction", None)
+    started = data_dict.get("game_started", None)
+    status_server = data_dict.get("status", None)
 
+    if started and (started == True or started == "True"):
+        main_frame.tkraise()
+    if reaction_server:
+        updateChat(reaction_server)
+    if board_server:
+        board = json.loads(board_server)
+        updateBoard(board)
     if role_server:
         role = role_server
     if sign_server:
         sign = sign_server
         const = 1 - signs.index(sign)
-    if move:
-        x = int(move.split("$")[0])
-        y = int(move.split("$")[1])
-        opponent_sign = signs.index(data_dict.get("move_sign")) + 1
-        board[x][y] = opponent_sign
-        draw_figures()
+    if status_server:
+        num = {1: "X", 2: "O"}
+        res_txt = "\nResult: "
+        game_fin = status_server
+        winner = data_dict.get("winner")
+        if winner == "draw":
+            res_txt = res_txt + "Draw"
+        else:
+            res_txt = res_txt + "Winner " + num.get(winner)
+        if game_fin:
+            fin_lbl = ttk.Label(game_end, text="Game is over!" + res_txt, font=("Helvetica", 20))
+            fin_lbl.grid(row=0, column=0, columnspan=3, padx=10, pady=10)
+            game_end.tkraise()
+    if turn_server:
+        turn = turn_server
     can_process = 1
 
 
 def process_input():
-    global program_fin
-    while not program_fin:
+    while 1:
         try:
             data = client_socket.recv(1024)
             if not data:
@@ -124,45 +156,33 @@ def process_input():
             client_thread = threading.Thread(
                 target=handle, args=(data_dict, client_socket,))
             client_thread.start()
-
         except ConnectionAbortedError:
             break
     return
 
 can_process = 0
-game_over = False
 client_thread = threading.Thread(target=process_input)
 client_thread.start()
-draw_lines()
-while True:
+
+def clicked(clicked_row, clicked_col):
+    global can_process,game_over, turn, role,const, game_details, client_socket,b
     if can_process:
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                program_fin = 1
-                client_socket.close()
+        if turn is not None and role == "player":
+            turn = int(turn)
+            print(game_fin)
+            if turn % 2 == const and not game_fin:
+                game_details["move"] = str(clicked_row) + "$" + str(clicked_col)
+                game_details["move_sign"] = sign
+                client_socket.send(bytes(str(game_details), "utf-8"))
 
-                client_thread.join()
-                sys.exit()
-            player = signs.index(sign) + 1
-
-            if event.type == pygame.MOUSEBUTTONDOWN and not game_over:
-                if turn is not None and role == "player":
-                    turn = int(turn)
-                    if turn % 2 == const and not game_fin:
-                        mouseX = event.pos[0]
-                        mouseY = event.pos[1]
-
-                        clicked_row = int(mouseY // SQUARE_SIZE)
-                        clicked_col = int(mouseX // SQUARE_SIZE)
-
-                        if available_square(clicked_row, clicked_col):
-                            mark_square(clicked_row, clicked_col, player)                        
-                            draw_figures()
-
-                        turn = turn + 1
-                        game_details["move"] = str(clicked_row) + "$" + str(clicked_col)
-                        game_details["move_sign"] = sign
-                        game_details["turn"] = turn
-                        client_socket.send(bytes(str(game_details), "utf-8"))
-
-    pygame.display.update()
+for i in range(3):
+    for j in range(3):
+                                          
+        b[i][j] = Button(main_frame,
+                        height = 4, width = 8,
+                        font = ("Helvetica","20"),
+                        command = lambda r = i, c = j : clicked(r,c))
+        b[i][j].grid(row = i + 1, column = j)
+ 
+ 
+mainloop()   
