@@ -73,11 +73,14 @@ b = [
  
 role = ""
 sign = ""
+msg = ""
 turn = 0
 const = 1
 game_details = {"move": ""}
 signs = ["X", "O"]
 game_fin = 0
+self_id = 0
+sender_id = 0
 
 def updateBoard(board):
     num_to_s = ["", "X", "O"]
@@ -87,15 +90,15 @@ def updateBoard(board):
             b[i][j].configure(text= num_to_s[board[i][j]])
 
 def updateChat(msg):
-    global chat_text
-    chat_text.insert("end", msg)
+    global chat_text,sender_id, self_id
+    chat_text.insert("end","User " + str(sender_id) + ": " + msg)
 
 def sendMsg():
-    global chat_input,client_socket
+    global chat_input,client_socket,self_id
     msg = chat_input.get()
     chat_input.delete(0, END)
     msg = {
-        "reaction" : msg + "\n"
+        "reaction" : msg + "\n", "sender_id": self_id
     }
     client_socket.send(bytes(str(msg), "utf-8"))
 
@@ -103,8 +106,8 @@ send_button = Button(chat_frame, text="Send", command=sendMsg)
 send_button.grid(row=3, column=1, padx=10, pady=5)
 
 
-def handle(data_dict, client_socket):
-    global role, sign, turn, const, game_details, signs, game_fin, board, can_process,res_txt
+def handle(data_dict):
+    global role, sign, turn, const, game_details, signs, game_fin, board, can_process,res_txt, msg, sender_id, self_id
     can_process = 0
     print(data_dict)
     turn_server = data_dict.get("turn", None)
@@ -114,11 +117,12 @@ def handle(data_dict, client_socket):
     reaction_server = data_dict.get("reaction", None)
     started = data_dict.get("game_started", None)
     status_server = data_dict.get("status", None)
+    turn_msg = data_dict.get("turn_msg", None)
+    conn_id = data_dict.get("conn_id", None)
+    sender_server = data_dict.get("sender_id", None)
 
     if started and (started == True or started == "True"):
         main_frame.tkraise()
-    if reaction_server:
-        updateChat(reaction_server)
     if board_server:
         board = json.loads(board_server)
         updateBoard(board)
@@ -142,6 +146,15 @@ def handle(data_dict, client_socket):
             game_end.tkraise()
     if turn_server:
         turn = turn_server
+    if turn_msg:
+        msg = turn_msg
+        turn_label.configure(text=msg)
+    if conn_id:
+        self_id = conn_id
+    if sender_server:
+        sender_id = sender_server
+    if reaction_server:
+        updateChat(reaction_server)
     can_process = 1
 
 
@@ -154,7 +167,7 @@ def process_input():
             data = data.decode("utf-8")
             data_dict = ast.literal_eval(data)
             client_thread = threading.Thread(
-                target=handle, args=(data_dict, client_socket,))
+                target=handle, args=(data_dict,))
             client_thread.start()
         except ConnectionAbortedError:
             break
@@ -165,12 +178,11 @@ client_thread = threading.Thread(target=process_input)
 client_thread.start()
 
 def clicked(clicked_row, clicked_col):
-    global can_process,game_over, turn, role,const, game_details, client_socket,b
+    global can_process,turn, role,const, game_details, client_socket,b
     if can_process:
-        if turn is not None and role == "player":
-            turn = int(turn)
-            print(game_fin)
-            if turn % 2 == const and not game_fin:
+        if msg is not None and role == "player":
+            
+            if msg == "Your turn!" and not game_fin:
                 game_details["move"] = str(clicked_row) + "$" + str(clicked_col)
                 game_details["move_sign"] = sign
                 client_socket.send(bytes(str(game_details), "utf-8"))
