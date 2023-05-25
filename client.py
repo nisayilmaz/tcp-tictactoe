@@ -9,11 +9,12 @@ client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 client_socket.connect((HOST, PORT))
     
 def print_grid(game_grid):
+    signs = [" ", "X", "O"]
     print("-------")
     for i in range(0,3):
         print("", end= "|")
         for j in range(0, 3):
-            print(game_grid[i][j], end= "|")
+            print(signs[game_grid[i][j]], end= "|")
         print("\n-------")
 
 
@@ -49,19 +50,25 @@ def process_input(data_dict, client_socket):
         sign = sign_server
         const = 1 - signs.index(sign)
     if status_server:
-        num = {1: "X", 2: "O"}
-        res_txt = "\nResult: "
-        game_fin = status_server
         winner = data_dict.get("winner")
-        if winner == "draw":
-            res_txt = res_txt + "Draw"
+        if status_server == -1:
+            print(winner)
+            winner = ""
+            status = 0
         else:
-            res_txt = res_txt + "Winner " + num.get(winner)
-        if game_fin:
-            pass
-
+            num = {1: "X", 2: "O"}
+            res_txt = "Game over!\nResult: "
+            game_fin = status_server
+            if winner == "draw":
+                res_txt = res_txt + "Draw"
+            else:
+                res_txt = res_txt + "Winner " + num.get(winner)
+            if game_fin:
+                print(res_txt)
     if turn_msg:
-        if turn_msg == "Your turn!" and role == "player":
+        if not game_fin:
+            print(turn_msg, "Sign", sign)
+        if turn_msg == "Your turn!" and role == "player" and not game_fin:
             x = int(input("Enter x coordinate: "))
             y = int(input("Enter y coordinate: "))
             game_details = {}
@@ -72,10 +79,12 @@ def process_input(data_dict, client_socket):
         
     if conn_id:
         self_id = conn_id
+        print("Your id:", self_id)
     if sender_server:
         sender_id = sender_server
-    if reaction_server:
-        pass
+    if game_fin:
+        client_socket.close()
+    
 
 
 wanted = input("Enter role (player/watcher):")
@@ -85,12 +94,15 @@ requested = {
 client_socket.send(bytes(str(requested), "utf-8"))
 
 while 1:
-    data = client_socket.recv(1024)
-    data = data.decode("utf-8")
-    if data == "":
+    try:
+        data = client_socket.recv(1024)
+        data = data.decode("utf-8")
+        if data == "":
+            break
+        data_dict = ast.literal_eval(data)
+        client_thread = threading.Thread(target=process_input, args=(data_dict, client_socket,))
+        client_thread.start()
+    except ConnectionAbortedError:
         break
-    data_dict = ast.literal_eval(data)
-    client_thread = threading.Thread(target=process_input, args=(data_dict, client_socket,))
-    client_thread.start()
 
 client_socket.close()

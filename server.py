@@ -98,7 +98,6 @@ def handle_player(client_socket):
     while True:
         try:
             data = client_socket.recv(1024)
-            print(data)
             if not data:
                 break
 
@@ -129,7 +128,8 @@ def handle_player(client_socket):
                             status["status"] = 1
                             status["winner"] = winner
                 else:
-                    print("invalid move")
+                    status["status"] = -1
+                    status["winner"] = "Invalid move, please make another move!"
             # data_dict contins info coming from the client, add status info,current board info
             data_dict.update(status)
             board_send = {
@@ -190,10 +190,8 @@ while(1):
     starts = random.randint(0,1000) % 2
     while 1:
         if num_players < 2:
-            print("aaa")
             client_socket, addr = server_socket.accept()
             data = client_socket.recv(1024)
-            print(data)
             data_dict = ast.literal_eval(data.decode("utf-8"))
             req = data_dict.get("requested", None)
             conn_id =  random.randint(0,1000)
@@ -209,6 +207,8 @@ while(1):
                         details = {"sign": player_signs[curr] , "role": "player","conn_id": conn_id, "turn_msg":"Your turn!"}
                     else:
                         details = {"sign": player_signs[curr] , "role": "player", "conn_id": conn_id, "turn_msg":"Opponent's turn!"}
+                    
+                    print("A player has connected with id:", conn_id, "and sign", player_signs[curr])
 
                     client_socket.send(bytes(str(details), 'utf-8'))
                     num_players = num_players + 1
@@ -221,15 +221,15 @@ while(1):
                     details = {"role": "watcher", "conn_id": conn_id }
                     details.update({"board": json.dumps(board)})
                     client_socket.send(bytes(str(details), 'utf-8'))
-                    print(f'Connected to client at {addr}')
+                    print("A watcher has connected with id:", conn_id)
                     watching_sockets.append(conn_id)
                     connections[conn_id] = client_socket
                     client_thread = threading.Thread(target=handle_watcher, args=(client_socket,))
                     client_thread.start()
                 if num_players == 2:
+                    print("Game started")
                     for id in watching_sockets:
                         connections[id].send(bytes(str({"turn_msg":"Player" + str(player_sockets[starts]) + "'s turn"}), "utf-8"))
-            print(f'Connected to client at {addr}')
         elif num_players >= 2:
             client_socket, addr = server_socket.accept()
             conn_id =  random.randint(0,1000)
@@ -237,7 +237,6 @@ while(1):
                 conn_id =  random.randint(0,1000)
             details = {"role": "watcher","conn_id": conn_id, "board":json.dumps(board),  "game_started" : True, "turn_msg":"Player" + str(player_sockets[starts]) + "'s turn"}
             client_socket.send(bytes(str(details), 'utf-8'))
-            print(f'Connected to client at {addr}')
             watching_sockets.append(conn_id)
             connections[conn_id] = client_socket
 

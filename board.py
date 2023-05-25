@@ -109,7 +109,6 @@ send_button.grid(row=3, column=1, padx=10, pady=5)
 def handle(data_dict):
     global role, sign, turn, const, game_details, signs, game_fin, board, can_process,res_txt, msg, sender_id, self_id
     can_process = 0
-    print(data_dict)
     turn_server = data_dict.get("turn", None)
     role_server = data_dict.get("role", None)
     sign_server = data_dict.get("sign", None)
