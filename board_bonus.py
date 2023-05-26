@@ -15,7 +15,7 @@ client_socket.connect((HOST, PORT))
 
 ############################################ UI ###############################################################
 root = Tk()
-root.title("GeeksForGeeks - Tic Tac Toe")
+root.title("Tic Tac Toe")
 root.resizable(0, 0)
 main_frame = Frame(root)
 wait_frame = Frame(root)
@@ -107,6 +107,7 @@ send_button.grid(row=3, column=1, padx=10, pady=5)
 
 
 def handle(data_dict):
+    print(data_dict)
     global role, sign, turn, const, game_details, signs, game_fin, board, can_process,res_txt, msg, sender_id, self_id
     can_process = 0
     turn_server = data_dict.get("turn", None)
@@ -131,18 +132,22 @@ def handle(data_dict):
         sign = sign_server
         const = 1 - signs.index(sign)
     if status_server:
-        num = {1: "X", 2: "O"}
-        res_txt = "\nResult: "
-        game_fin = status_server
-        winner = data_dict.get("winner")
-        if winner == "draw":
-            res_txt = res_txt + "Draw"
+        if status_server != -1:
+            num = {1: "X", 2: "O"}
+            res_txt = "\nResult: "
+            game_fin = status_server
+            winner = data_dict.get("winner")
+            if winner == "draw":
+                res_txt = res_txt + "Draw"
+            else:
+                res_txt = res_txt + "Winner " + num.get(winner)
+            if game_fin:
+                fin_lbl = ttk.Label(game_end, text="Game is over!" + res_txt, font=("Helvetica", 20))
+                fin_lbl.grid(row=0, column=0, columnspan=3, padx=10, pady=10)
+                game_end.tkraise()
         else:
-            res_txt = res_txt + "Winner " + num.get(winner)
-        if game_fin:
-            fin_lbl = ttk.Label(game_end, text="Game is over!" + res_txt, font=("Helvetica", 20))
-            fin_lbl.grid(row=0, column=0, columnspan=3, padx=10, pady=10)
-            game_end.tkraise()
+            msg_invalid = data_dict.get("winner")
+            turn_label.configure(text=msg_invalid)
     if turn_server:
         turn = turn_server
     if turn_msg:
