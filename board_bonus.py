@@ -7,8 +7,7 @@ from tkinter import *
 from tkinter import messagebox, ttk
 
 HOST = "127.0.0.1"
-PORT = 7777
-
+PORT = int(sys.argv[1])
 
 client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 client_socket.connect((HOST, PORT))

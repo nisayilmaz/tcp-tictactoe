@@ -2,8 +2,9 @@ import socket
 import ast
 import threading
 import json
+import sys
 HOST = "127.0.0.1" 
-PORT =  7777
+PORT = int(sys.argv[1])
 
 client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 client_socket.connect((HOST, PORT))
@@ -38,6 +39,7 @@ def process_input(data_dict, client_socket):
 
     if started_server and started_server == True:
         started = started_server
+        print("Game Started!")
     if board_server:
         board = json.loads(board_server)
         print_grid(board)

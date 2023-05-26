@@ -3,8 +3,9 @@ import threading
 import ast
 import random
 import json
+import sys
 HOST = "127.0.0.1" 
-PORT =  7777
+PORT =  int(sys.argv[1])
 
 server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 server_socket.bind((HOST, PORT))
